@@ -8,10 +8,13 @@ export const useBillStore = defineStore('billStore', {
         results: [] as Debt[][],
     }),
     getters: {
-        arePersons(state): boolean {
-            return state.persons.length > 1
+        hasPersons(state): boolean {
+            return state.persons.length > 0
         },
-        areResults(state): boolean {
+        hasItems(state): boolean {
+            return state.items.length > 0
+        },
+        hasResults(state): boolean {
             return state.results.length > 0
         },
         debtsFromPersons(state): Debt[][] {
@@ -55,6 +58,31 @@ export const useBillStore = defineStore('billStore', {
         createId(): symbol {
             return Symbol('id')
         },
+        addItem(): void {
+            this.items.unshift({
+                name: '',
+                consumers: [] as Person[],
+                id: this.createId(),
+            } as Item)
+        },
+        deleteItem(id: symbol): void {
+            const deleteItemIndex: number = this.items.findIndex(
+                (item: Item): boolean => item.id === id
+            )
+            this.items.splice(deleteItemIndex, 1)
+        },
+        addPerson(): void {
+            this.persons.unshift({
+                name: '',
+                id: this.createId(),
+            } as Person)
+        },
+        deletePerson(id: symbol): void {
+            const deletePersonIndex: number = this.persons.findIndex(
+                (person: Person): boolean => person.id === id
+            )
+            this.persons.splice(deletePersonIndex, 1)
+        },
         returnPersonsClone(personsArray?: Person[]): Person[] {
             const personsClone: Person[] = []
             if (personsArray === undefined) {
@@ -91,10 +119,6 @@ export const useBillStore = defineStore('billStore', {
                 })
             }
             return itemsClone
-        },
-        setItemsAndCalculate(itemsArray: Item[]): void {
-            this.items = this.returnItemsClone(itemsArray)
-            this.calculateResults()
         },
         calculateResults(): void {
             this.results = []

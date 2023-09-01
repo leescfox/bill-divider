@@ -3,7 +3,7 @@
         <v-card-item>
             <div class="d-flex flex-column align-center">
                 <v-card-title>Между кем делить?</v-card-title>
-                <v-btn @click="addPerson" class="text-none ma-2">
+                <v-btn @click="billStore.addPerson()" class="text-none ma-2">
                     Добавить человека
                 </v-btn>
             </div>
@@ -12,11 +12,11 @@
         <v-form
             v-model="isFormValid"
             ref="personsForm"
-            @submit.prevent="toItems"
+            @submit.prevent="redirectToItems"
         >
-            <template v-if="arePersons">
+            <template v-if="billStore.hasPersons">
                 <div
-                    v-for="(person, index) in persons"
+                    v-for="person in billStore.persons"
                     :key="person.id"
                     class="d-flex mb-2"
                 >
@@ -30,7 +30,7 @@
                         density="comfortable"
                     />
                     <v-btn
-                        @click="deletePerson(index)"
+                        @click="billStore.deletePerson(person.id)"
                         icon="mdi-trash-can-outline"
                         elevation="1"
                     />
@@ -52,10 +52,8 @@
     </v-card>
     <v-dialog v-model="showModal" width="auto">
         <v-card>
-            <v-card-title>{{ personsModalContent.title }}</v-card-title>
-            <v-card-text>
-                {{ personsModalContent.text }}
-            </v-card-text>
+            <v-card-title> {{ personsModalContent.title }} </v-card-title>
+            <v-card-text> {{ personsModalContent.text }} </v-card-text>
             <v-card-actions>
                 <div class="action-btn-container d-flex justify-end">
                     <v-btn @click="hideModal" class="text-none"> Хорошо </v-btn>
@@ -81,21 +79,14 @@ export default defineComponent({
         const billStore = useBillStore()
         return { billStore }
     },
-    created() {
-        this.persons = this.billStore.returnPersonsClone()
-    },
     data() {
         return {
-            persons: [] as Person[],
             isFormValid: null as FormValidation,
             showModal: false as boolean,
             error: 'UnknownError' as ErrorType,
         }
     },
     computed: {
-        arePersons(): boolean {
-            return this.persons.length > 0
-        },
         validation() {
             return [
                 (value: string): ValidationRule => {
@@ -105,9 +96,9 @@ export default defineComponent({
                     const compareFunc = (person: Person): boolean =>
                         person.name === value
                     const findIndex: number =
-                        this.persons.findIndex(compareFunc)
+                        this.billStore.persons.findIndex(compareFunc)
                     const findLastIndex: number =
-                        this.persons.findLastIndex(compareFunc)
+                        this.billStore.persons.findLastIndex(compareFunc)
                     return findIndex === findLastIndex
                         ? true
                         : 'Имена не могут повторяться!'
@@ -124,6 +115,11 @@ export default defineComponent({
                     content.title = 'Слишком мало людей!'
                     content.text = 'Должно быть добавлено хотя бы два человека!'
                     break
+                case 'InvalidDataError':
+                    content.title = 'Данные введены неверно!'
+                    content.text =
+                        'Пожалуйста, проверьте корректность введённых данных.'
+                    break
                 case 'UnknownError':
                 default:
                     content.title = 'Неизвестная ошибка!'
@@ -134,35 +130,37 @@ export default defineComponent({
         },
     },
     methods: {
-        addPerson(): void {
-            this.persons.unshift({
-                name: '',
-                id: this.billStore.createId(),
-            })
-        },
-        deletePerson(index: number): void {
-            this.persons.splice(index, 1)
-        },
-        async toItems(): Promise<void> {
-            if (this.persons.length < 2) {
+        async validateForm(): Promise<boolean> {
+            if (this.billStore.persons.length < 2) {
                 this.error = 'FewItemsError'
-                this.showModal = true
-                return
-            }
-            try {
-                await (this.$refs['personsForm'] as HTMLFormElement).validate()
-                if (this.isFormValid) {
-                    this.billStore.setPersons(this.persons)
-                    this.$router.push({ name: 'items' })
+            } else {
+                try {
+                    await (
+                        this.$refs['personsForm'] as HTMLFormElement
+                    ).validate()
+                    if (this.isFormValid) {
+                        return true
+                    }
+                    this.error = 'InvalidDataError'
+                } catch {
+                    this.error = 'UnknownError'
                 }
-            } catch {
-                this.error = 'UnknownError'
-                this.showModal = true
             }
+            return false
+        },
+        redirectToItems(): void {
+            this.$router.push({ name: 'items' })
         },
         hideModal(): void {
             this.showModal = false
         },
+    },
+    async beforeRouteLeave(to) {
+        if (to.name !== 'items') return true
+        if (!(await this.validateForm())) {
+            this.showModal = true
+            return false
+        }
     },
 })
 </script>

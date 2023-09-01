@@ -26,4 +26,4 @@ export type ValidationRule = true | string
 
 export type FormValidation = boolean | null
 
-export type ErrorType = 'UnknownError' | 'FewItemsError'
+export type ErrorType = 'UnknownError' | 'FewItemsError' | 'InvalidDataError'

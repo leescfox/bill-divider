@@ -18,7 +18,7 @@ const routes = [
         component: () => import('@/views/ViewItems.vue'),
         beforeEnter: () => {
             const billStore = useBillStore()
-            if (!billStore.arePersons) {
+            if (!billStore.hasPersons) {
                 return { name: 'home' }
             }
         },
@@ -29,7 +29,7 @@ const routes = [
         component: () => import('@/views/ViewResults.vue'),
         beforeEnter: () => {
             const billStore = useBillStore()
-            if (!billStore.areResults) {
+            if (!billStore.hasResults) {
                 return { name: 'home' }
             }
         },

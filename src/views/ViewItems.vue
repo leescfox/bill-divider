@@ -3,7 +3,7 @@
         <v-card-item>
             <div class="d-flex flex-column align-center">
                 <v-card-title>Что и как делить?</v-card-title>
-                <v-btn @click="addItem" class="text-none ma-2">
+                <v-btn @click="billStore.addItem()" class="text-none ma-2">
                     Добавить продукт
                 </v-btn>
             </div>
@@ -12,11 +12,11 @@
         <v-form
             v-model="isFormValid"
             ref="itemsForm"
-            @submit.prevent="toResults"
+            @submit.prevent="redirectToResults"
         >
-            <template v-if="areItems">
+            <template v-if="billStore.hasItems">
                 <div
-                    v-for="(item, index) in items"
+                    v-for="item in billStore.items"
                     :key="item.id"
                     class="item-container pa-2 mt-2"
                 >
@@ -46,7 +46,7 @@
                                 bg-color="inputBG"
                             />
                             <v-btn
-                                @click="deleteItem(index)"
+                                @click="billStore.deleteItem(item.id)"
                                 icon="mdi-trash-can-outline"
                                 elevation="1"
                             />
@@ -91,7 +91,7 @@
                 </span>
             </div>
             <v-btn type="submit" class="text-none mt-2" variant="tonal" block>
-                Сохранить и продолжить
+                Продолжить
             </v-btn>
         </v-form>
     </v-card>
@@ -114,7 +114,6 @@ import { useBillStore } from '@/store/billStore'
 import {
     ModalContent,
     Person,
-    Item,
     ValidationRule,
     FormValidation,
     ErrorType,
@@ -125,12 +124,8 @@ export default defineComponent({
         const billStore = useBillStore()
         return { billStore }
     },
-    created() {
-        this.items = this.billStore.returnItemsClone()
-    },
     data() {
         return {
-            items: [] as Item[],
             isFormValid: null as FormValidation,
             productNameValidation: [
                 (value: string): ValidationRule => {
@@ -162,9 +157,6 @@ export default defineComponent({
         }
     },
     computed: {
-        areItems(): boolean {
-            return this.items.length > 0
-        },
         itemsModalContent(): ModalContent {
             const content: ModalContent = {
                 title: '',
@@ -174,6 +166,11 @@ export default defineComponent({
                 case 'FewItemsError':
                     content.title = 'Слишком мало позиций!'
                     content.text = 'Должна быть хотя бы одна позиция!'
+                    break
+                case 'InvalidDataError':
+                    content.title = 'Данные введены неверно!'
+                    content.text =
+                        'Пожалуйста, проверьте корректность введённых данных.'
                     break
                 case 'UnknownError':
                 default:
@@ -185,36 +182,38 @@ export default defineComponent({
         },
     },
     methods: {
-        addItem(): void {
-            this.items.unshift({
-                name: '',
-                consumers: [] as Person[],
-                id: this.billStore.createId(),
-            } as Item)
-        },
-        deleteItem(index: number): void {
-            this.items.splice(index, 1)
-        },
-        async toResults(): Promise<void> {
-            if (!this.areItems) {
+        async validateForm(): Promise<boolean> {
+            if (!this.billStore.hasItems) {
                 this.error = 'FewItemsError'
-                this.showModal = true
-                return
-            }
-            try {
-                await (this.$refs['itemsForm'] as HTMLFormElement).validate()
-                if (this.isFormValid) {
-                    this.billStore.setItemsAndCalculate(this.items)
-                    this.$router.push({ name: 'results' })
+            } else {
+                try {
+                    await (
+                        this.$refs['itemsForm'] as HTMLFormElement
+                    ).validate()
+                    if (this.isFormValid) {
+                        return true
+                    }
+                    this.error = 'InvalidDataError'
+                } catch {
+                    this.error = 'UnknownError'
                 }
-            } catch {
-                this.error = 'UnknownError'
-                this.showModal = true
             }
+            return false
+        },
+        redirectToResults(): void {
+            this.$router.push({ name: 'results' })
         },
         hideModal(): void {
             this.showModal = false
         },
+    },
+    async beforeRouteLeave(to) {
+        if (to.name !== 'results') return true
+        if (!(await this.validateForm())) {
+            this.showModal = true
+            return false
+        }
+        this.billStore.calculateResults()
     },
 })
 </script>
