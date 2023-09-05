@@ -12,7 +12,7 @@
         <v-form
             v-model="isFormValid"
             ref="personsForm"
-            @submit.prevent="redirectToItems"
+            @submit.prevent="redirectToItems()"
         >
             <template v-if="billStore.hasPersons">
                 <div
@@ -22,7 +22,7 @@
                 >
                     <v-text-field
                         v-model.trim="person.name"
-                        :rules="validation"
+                        :rules="nameValidation"
                         counter
                         maxlength="15"
                         autofocus
@@ -46,7 +46,7 @@
                 </span>
             </div>
             <v-btn type="submit" class="text-none mt-2" variant="tonal" block>
-                Сохранить и продолжить
+                Продолжить
             </v-btn>
         </v-form>
     </v-card>
@@ -56,7 +56,9 @@
             <v-card-text> {{ personsModalContent.text }} </v-card-text>
             <v-card-actions>
                 <div class="action-btn-container d-flex justify-end">
-                    <v-btn @click="hideModal" class="text-none"> Хорошо </v-btn>
+                    <v-btn @click="hideModal()" class="text-none">
+                        Хорошо
+                    </v-btn>
                 </div>
             </v-card-actions>
         </v-card>
@@ -82,36 +84,35 @@ export default defineComponent({
     data() {
         return {
             isFormValid: null as FormValidation,
+            nameValidation: [
+                (value: string): ValidationRule => {
+                    return value.length > 0 ? true : 'Введите имя!'
+                },
+                (value: string): ValidationRule => {
+                    const store = useBillStore()
+                    const compareFunc = (person: Person): boolean =>
+                        person.name === value
+                    const findIndex: number =
+                        store.persons.findIndex(compareFunc)
+                    const findLastIndex: number =
+                        store.persons.findLastIndex(compareFunc)
+                    return findIndex === findLastIndex
+                        ? true
+                        : 'Имена не могут повторяться!'
+                },
+            ],
             showModal: false as boolean,
             error: 'UnknownError' as ErrorType,
         }
     },
     computed: {
-        validation() {
-            return [
-                (value: string): ValidationRule => {
-                    return value.length > 0 ? true : 'Введите имя!'
-                },
-                (value: string): ValidationRule => {
-                    const compareFunc = (person: Person): boolean =>
-                        person.name === value
-                    const findIndex: number =
-                        this.billStore.persons.findIndex(compareFunc)
-                    const findLastIndex: number =
-                        this.billStore.persons.findLastIndex(compareFunc)
-                    return findIndex === findLastIndex
-                        ? true
-                        : 'Имена не могут повторяться!'
-                },
-            ]
-        },
         personsModalContent(): ModalContent {
             const content: ModalContent = {
                 title: '',
                 text: '',
             }
             switch (this.error) {
-                case 'FewItemsError':
+                case 'FewPositionsError':
                     content.title = 'Слишком мало людей!'
                     content.text = 'Должно быть добавлено хотя бы два человека!'
                     break
@@ -132,7 +133,7 @@ export default defineComponent({
     methods: {
         async validateForm(): Promise<boolean> {
             if (this.billStore.persons.length < 2) {
-                this.error = 'FewItemsError'
+                this.error = 'FewPositionsError'
             } else {
                 try {
                     await (

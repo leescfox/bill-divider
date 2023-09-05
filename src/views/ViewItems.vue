@@ -12,7 +12,7 @@
         <v-form
             v-model="isFormValid"
             ref="itemsForm"
-            @submit.prevent="redirectToResults"
+            @submit.prevent="redirectToResults()"
         >
             <template v-if="billStore.hasItems">
                 <div
@@ -101,7 +101,9 @@
             <v-card-text>{{ itemsModalContent.text }}</v-card-text>
             <v-card-actions>
                 <div class="action-btn-container d-flex justify-end">
-                    <v-btn @click="hideModal" class="text-none"> Хорошо </v-btn>
+                    <v-btn @click="hideModal()" class="text-none">
+                        Хорошо
+                    </v-btn>
                 </div>
             </v-card-actions>
         </v-card>
@@ -163,7 +165,7 @@ export default defineComponent({
                 text: '',
             }
             switch (this.error) {
-                case 'FewItemsError':
+                case 'FewPositionsError':
                     content.title = 'Слишком мало позиций!'
                     content.text = 'Должна быть хотя бы одна позиция!'
                     break
@@ -184,7 +186,7 @@ export default defineComponent({
     methods: {
         async validateForm(): Promise<boolean> {
             if (!this.billStore.hasItems) {
-                this.error = 'FewItemsError'
+                this.error = 'FewPositionsError'
             } else {
                 try {
                     await (

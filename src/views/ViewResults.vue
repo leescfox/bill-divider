@@ -7,7 +7,7 @@
             </v-card-title>
         </div>
         <v-divider />
-        <template v-if="billStore.areTransformedResults">
+        <template v-if="billStore.hasResults">
             <v-tabs v-model="currentTab" grow>
                 <v-tab :value="tabs[0]">Кто - кому</v-tab>
                 <v-tab :value="tabs[1]">Кому - кто</v-tab>
@@ -80,7 +80,12 @@
                 Если результат получился меньше копейки - он отбрасывается!
             </div>
         </div>
-        <v-btn @click="startOver" class="text-none" variant="tonal" block>
+        <v-btn
+            @click="startFromPersons()"
+            class="text-none"
+            variant="tonal"
+            block
+        >
             Начать заново
         </v-btn>
     </v-card>
@@ -102,7 +107,7 @@ export default defineComponent({
         }
     },
     methods: {
-        startOver(): void {
+        startFromPersons(): void {
             this.billStore.resetData()
             this.$router.push({ name: 'persons' })
         },

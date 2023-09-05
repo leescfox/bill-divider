@@ -14,7 +14,12 @@
                 после приятно проведённого времени!
             </span>
         </div>
-        <v-btn @click="begin" class="text-none mt-2" variant="tonal" block>
+        <v-btn
+            @click="redirectToPersons()"
+            class="text-none mt-2"
+            variant="tonal"
+            block
+        >
             Начать!
         </v-btn>
     </v-card>
@@ -25,7 +30,7 @@ import { defineComponent } from 'vue'
 
 export default defineComponent({
     methods: {
-        begin(): void {
+        redirectToPersons(): void {
             this.$router.push({ name: 'persons' })
         },
     },

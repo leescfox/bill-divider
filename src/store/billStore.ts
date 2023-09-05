@@ -14,8 +14,11 @@ export const useBillStore = defineStore('billStore', {
         hasItems(state): boolean {
             return state.items.length > 0
         },
-        hasResults(state): boolean {
-            return state.results.length > 0
+        hasResults(): boolean {
+            return (
+                this.debtsFromPersons.length > 0 &&
+                this.debtsToPersons.length > 0
+            )
         },
         debtsFromPersons(state): Debt[][] {
             return state.results.reduce<Debt[][]>(
@@ -47,16 +50,33 @@ export const useBillStore = defineStore('billStore', {
             }
             return transformedResults
         },
-        areTransformedResults(): boolean {
-            return (
-                this.debtsFromPersons.length > 0 &&
-                this.debtsToPersons.length > 0
-            )
-        },
     },
     actions: {
         createId(): symbol {
             return Symbol('id')
+        },
+        addPerson(): void {
+            this.persons.unshift({
+                name: '',
+                id: this.createId(),
+            } as Person)
+        },
+        deletePerson(id: symbol): void {
+            const deletePersonIndex: number = this.persons.findIndex(
+                (person: Person): boolean => person.id === id
+            )
+            this.persons.splice(deletePersonIndex, 1)
+            for (const item of this.items) {
+                if (item.payer !== undefined && item.payer.id === id) {
+                    item.payer = undefined
+                }
+                for (let i = 0; i < item.consumers.length; i++) {
+                    if (item.consumers[i].id === id) {
+                        item.consumers.splice(i, 1)
+                        break
+                    }
+                }
+            }
         },
         addItem(): void {
             this.items.unshift({
@@ -70,55 +90,6 @@ export const useBillStore = defineStore('billStore', {
                 (item: Item): boolean => item.id === id
             )
             this.items.splice(deleteItemIndex, 1)
-        },
-        addPerson(): void {
-            this.persons.unshift({
-                name: '',
-                id: this.createId(),
-            } as Person)
-        },
-        deletePerson(id: symbol): void {
-            const deletePersonIndex: number = this.persons.findIndex(
-                (person: Person): boolean => person.id === id
-            )
-            this.persons.splice(deletePersonIndex, 1)
-        },
-        returnPersonsClone(personsArray?: Person[]): Person[] {
-            const personsClone: Person[] = []
-            if (personsArray === undefined) {
-                personsArray = this.persons
-            }
-            for (let i = 0; i < personsArray.length; i++) {
-                personsClone.push({ ...personsArray[i] })
-            }
-            return personsClone
-        },
-        setPersons(personsArray: Person[]): void {
-            this.persons = this.returnPersonsClone(personsArray)
-            this.items = []
-            this.results = []
-        },
-        returnItemsClone(itemsArray?: Item[]): Item[] {
-            const itemsClone: Item[] = []
-            if (itemsArray === undefined) {
-                itemsArray = this.items
-            }
-            for (let i = 0; i < itemsArray.length; i++) {
-                itemsClone.push({
-                    name: itemsArray[i].name,
-                    price: itemsArray[i].price,
-                    payer: { ...itemsArray[i].payer },
-                    consumers: itemsArray[i].consumers.reduce<Person[]>(
-                        (result: Person[], current: Person): Person[] => {
-                            result.push({ ...current })
-                            return result
-                        },
-                        []
-                    ),
-                    id: itemsArray[i].id,
-                })
-            }
-            return itemsClone
         },
         calculateResults(): void {
             this.results = []
@@ -134,7 +105,8 @@ export const useBillStore = defineStore('billStore', {
             }
             for (const item of this.items) {
                 const payerIndex: number = this.persons.findIndex(
-                    (person: Person): boolean => person.id === item.payer.id
+                    (person: Person): boolean =>
+                        item.payer !== undefined && item.payer.id === person.id
                 )
                 const priceSplit: number = item.price / item.consumers.length
                 let consumersFound: number = 0

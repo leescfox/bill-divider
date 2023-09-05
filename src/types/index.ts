@@ -11,7 +11,7 @@ export interface Person {
 export interface Item {
     name: string
     price: number
-    payer: Person
+    payer: Person | undefined
     consumers: Person[]
     id: symbol
 }
@@ -26,4 +26,7 @@ export type ValidationRule = true | string
 
 export type FormValidation = boolean | null
 
-export type ErrorType = 'UnknownError' | 'FewItemsError' | 'InvalidDataError'
+export type ErrorType =
+    | 'UnknownError'
+    | 'FewPositionsError'
+    | 'InvalidDataError'
