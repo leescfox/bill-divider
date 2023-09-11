@@ -62,20 +62,16 @@ export const useBillStore = defineStore('billStore', {
             } as Person)
         },
         deletePerson(id: symbol): void {
-            const deletePersonIndex: number = this.persons.findIndex(
-                (person: Person): boolean => person.id === id
+            this.persons = this.persons.filter(
+                (person: Person): boolean => person.id !== id
             )
-            this.persons.splice(deletePersonIndex, 1)
             for (const item of this.items) {
                 if (item.payer !== undefined && item.payer.id === id) {
                     item.payer = undefined
                 }
-                for (let i = 0; i < item.consumers.length; i++) {
-                    if (item.consumers[i].id === id) {
-                        item.consumers.splice(i, 1)
-                        break
-                    }
-                }
+                item.consumers = item.consumers.filter(
+                    (consumer: Person): boolean => consumer.id !== id
+                )
             }
         },
         addItem(): void {
@@ -86,10 +82,9 @@ export const useBillStore = defineStore('billStore', {
             } as Item)
         },
         deleteItem(id: symbol): void {
-            const deleteItemIndex: number = this.items.findIndex(
-                (item: Item): boolean => item.id === id
+            this.items = this.items.filter(
+                (item: Item): boolean => item.id !== id
             )
-            this.items.splice(deleteItemIndex, 1)
         },
         calculateResults(): void {
             this.results = []
