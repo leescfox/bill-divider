@@ -1,19 +1,21 @@
 <template>
     <v-card>
-        <div class="d-flex justify-center">
-            <v-card-title>
+        <PageTitle>
+            <template #default>
                 <span>Делим счёт!</span>
                 <v-icon icon="mdi-currency-usd" size="large" />
-            </v-card-title>
-        </div>
+            </template>
+        </PageTitle>
         <v-divider />
-        <div class="main-wrapper d-flex flex-column align-center">
-            <v-icon icon="mdi-set-split" size="100" />
-            <span class="main-text">
+        <PageDescription>
+            <template #icon>
+                <v-icon icon="mdi-set-split" size="100" />
+            </template>
+            <template #default>
                 Данное приложение поможет вам быстро и удобно разделить счёт
                 после приятно проведённого времени!
-            </span>
-        </div>
+            </template>
+        </PageDescription>
         <v-btn
             @click="redirectToPersons()"
             class="text-none mt-2"
@@ -25,24 +27,14 @@
     </v-card>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
+import router from '@/router'
+import PageTitle from '@/components/PageTitle.vue'
+import PageDescription from '@/components/PageDescription.vue'
 
-export default defineComponent({
-    methods: {
-        redirectToPersons(): void {
-            this.$router.push({ name: 'persons' })
-        },
-    },
-})
+function redirectToPersons() {
+    router.push({ name: 'persons' })
+}
 </script>
 
-<style lang="scss" scoped>
-.main-wrapper {
-    width: 70%;
-    margin: 0 auto;
-    .main-text {
-        text-align: center;
-    }
-}
-</style>
+<style lang="scss" scoped></style>

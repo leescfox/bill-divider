@@ -22,6 +22,8 @@ export interface Debt {
     amount: number
 }
 
+export type DebtDirections = keyof Omit<Debt, 'amount'>
+
 export type ValidationRule = true | string
 
 export type FormValidation = boolean | null

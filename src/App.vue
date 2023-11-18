@@ -6,11 +6,7 @@
     </v-app>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-
-export default defineComponent({})
-</script>
+<script setup lang="ts"></script>
 
 <style lang="scss">
 .main {
@@ -19,7 +15,7 @@ export default defineComponent({})
 }
 @media screen and (600px <= width < 960px) {
     .main {
-        width: 65%;
+        width: 75%;
         max-width: 530px !important;
     }
 }

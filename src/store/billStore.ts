@@ -1,147 +1,155 @@
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { Person, Item, Debt } from '@/types'
 
-export const useBillStore = defineStore('billStore', {
-    state: () => ({
-        persons: [] as Person[],
-        items: [] as Item[],
-        results: [] as Debt[][],
-    }),
-    getters: {
-        hasPersons(state): boolean {
-            return state.persons.length > 0
-        },
-        hasItems(state): boolean {
-            return state.items.length > 0
-        },
-        hasResults(): boolean {
-            return (
-                this.debtsFromPersons.length > 0 &&
-                this.debtsToPersons.length > 0
+export const useBillStore = defineStore('billStore', () => {
+    const persons = ref<Person[]>([])
+    const hasPersons = computed(() => persons.value.length > 0)
+
+    function addPerson() {
+        persons.value.unshift({
+            name: '',
+            id: createId(),
+        })
+    }
+    function deletePerson(id: symbol) {
+        persons.value = persons.value.filter((person) => person.id !== id)
+        for (const item of items.value) {
+            if (item.payer !== undefined && item.payer.id === id) {
+                item.payer = undefined
+            }
+            item.consumers = item.consumers.filter(
+                (consumer) => consumer.id !== id
             )
-        },
-        debtsFromPersons(state): Debt[][] {
-            return state.results.reduce<Debt[][]>(
-                (result: Debt[][], current: Debt[]): Debt[][] => {
-                    const filteredDebtsRow: Debt[] = current.filter(
-                        (element: Debt): boolean => element.amount > 0
-                    )
-                    if (filteredDebtsRow.length > 0) {
-                        result.push(filteredDebtsRow)
-                    }
-                    return result
-                },
-                []
+        }
+    }
+
+    const items = ref<Item[]>([])
+    const hasItems = computed(() => items.value.length > 0)
+
+    function addItem() {
+        items.value.unshift(<Item>{
+            name: '',
+            consumers: <Person[]>[],
+            id: createId(),
+        })
+    }
+    function deleteItem(id: symbol) {
+        items.value = items.value.filter((item) => item.id !== id)
+    }
+
+    const results = ref<Debt[][]>([])
+    const hasResults = computed(() => results.value.length > 0)
+    const debtsFromPersons = computed(() =>
+        results.value.reduce((result, current) => {
+            const filteredDebtsRow = current.filter(
+                (element) => element.amount > 0
             )
-        },
-        debtsToPersons(state): Debt[][] {
-            const transformedResults: Debt[][] = []
-            for (let i = 0; i < state.results.length; i++) {
-                const newDebtsRow: Debt[] = []
-                for (let j = 0; j < state.results.length; j++) {
-                    const item: Debt = state.results[j][i]
-                    if (item.amount > 0) {
-                        newDebtsRow.push(item)
-                    }
-                }
-                if (newDebtsRow.length > 0) {
-                    transformedResults.push(newDebtsRow)
+            if (filteredDebtsRow.length > 0) {
+                result.push(filteredDebtsRow)
+            }
+            return result
+        }, <Debt[][]>[])
+    )
+    const debtsToPersons = computed(() => {
+        const transformedResults = <Debt[][]>[]
+        for (let i = 0; i < results.value.length; i++) {
+            const newDebtsRow = <Debt[]>[]
+            for (let j = 0; j < results.value.length; j++) {
+                const item = results.value[j][i]
+                if (item.amount > 0) {
+                    newDebtsRow.push(item)
                 }
             }
-            return transformedResults
-        },
-    },
-    actions: {
-        createId(): symbol {
-            return Symbol('id')
-        },
-        addPerson(): void {
-            this.persons.unshift({
-                name: '',
-                id: this.createId(),
-            } as Person)
-        },
-        deletePerson(id: symbol): void {
-            this.persons = this.persons.filter(
-                (person: Person): boolean => person.id !== id
+            if (newDebtsRow.length > 0) {
+                transformedResults.push(newDebtsRow)
+            }
+        }
+        return transformedResults
+    })
+    const hasDebts = computed(
+        () =>
+            debtsFromPersons.value.length > 0 && debtsToPersons.value.length > 0
+    )
+    function calculateResults() {
+        results.value = []
+        for (let i = 0; i < persons.value.length; i++) {
+            results.value.push([])
+            for (let j = 0; j < persons.value.length; j++) {
+                results.value[i].push({
+                    from: persons.value[i],
+                    to: persons.value[j],
+                    amount: 0,
+                })
+            }
+        }
+        for (const item of items.value) {
+            const payerIndex = persons.value.findIndex(
+                (person) =>
+                    item.payer !== undefined && item.payer.id === person.id
             )
-            for (const item of this.items) {
-                if (item.payer !== undefined && item.payer.id === id) {
-                    item.payer = undefined
+            const priceSplit = item.price / item.consumers.length
+            let consumersFound = 0
+            for (
+                let i = 0;
+                i < persons.value.length &&
+                consumersFound < item.consumers.length;
+                i++
+            ) {
+                for (let j = 0; j < item.consumers.length; j++) {
+                    if (persons.value[i].id !== item.consumers[j].id) {
+                        continue
+                    }
+                    consumersFound++
+                    if (i !== payerIndex) {
+                        results.value[i][payerIndex].amount += priceSplit
+                    }
+                    break
                 }
-                item.consumers = item.consumers.filter(
-                    (consumer: Person): boolean => consumer.id !== id
+            }
+        }
+        for (let i = 0; i < results.value.length; i++) {
+            for (let j = i + 1; j < results.value[i].length; j++) {
+                const lowest = Math.min(
+                    results.value[i][j].amount,
+                    results.value[j][i].amount
                 )
+                results.value[i][j].amount = +(
+                    results.value[i][j].amount - lowest
+                ).toFixed(2)
+                results.value[j][i].amount = +(
+                    results.value[j][i].amount - lowest
+                ).toFixed(2)
             }
-        },
-        addItem(): void {
-            this.items.unshift({
-                name: '',
-                consumers: [] as Person[],
-                id: this.createId(),
-            } as Item)
-        },
-        deleteItem(id: symbol): void {
-            this.items = this.items.filter(
-                (item: Item): boolean => item.id !== id
-            )
-        },
-        calculateResults(): void {
-            this.results = []
-            for (let i = 0; i < this.persons.length; i++) {
-                this.results.push([])
-                for (let j = 0; j < this.persons.length; j++) {
-                    this.results[i].push({
-                        from: this.persons[i],
-                        to: this.persons[j],
-                        amount: 0,
-                    })
-                }
-            }
-            for (const item of this.items) {
-                const payerIndex: number = this.persons.findIndex(
-                    (person: Person): boolean =>
-                        item.payer !== undefined && item.payer.id === person.id
-                )
-                const priceSplit: number = item.price / item.consumers.length
-                let consumersFound: number = 0
-                for (
-                    let i = 0;
-                    i < this.persons.length &&
-                    consumersFound < item.consumers.length;
-                    i++
-                ) {
-                    for (let j = 0; j < item.consumers.length; j++) {
-                        if (this.persons[i].id !== item.consumers[j].id) {
-                            continue
-                        }
-                        consumersFound++
-                        if (i !== payerIndex) {
-                            this.results[i][payerIndex].amount += priceSplit
-                        }
-                        break
-                    }
-                }
-            }
-            for (let i = 0; i < this.results.length; i++) {
-                for (let j = i + 1; j < this.results[i].length; j++) {
-                    const lowest: number = Math.min(
-                        this.results[i][j].amount,
-                        this.results[j][i].amount
-                    )
-                    this.results[i][j].amount = +(
-                        this.results[i][j].amount - lowest
-                    ).toFixed(2)
-                    this.results[j][i].amount = +(
-                        this.results[j][i].amount - lowest
-                    ).toFixed(2)
-                }
-            }
-        },
-        resetData(): void {
-            this.persons = []
-            this.items = []
-            this.results = []
-        },
-    },
+        }
+    }
+
+    function createId() {
+        return Symbol('id')
+    }
+
+    function resetData() {
+        persons.value = []
+        items.value = []
+        results.value = []
+    }
+
+    return {
+        persons,
+        hasPersons,
+        addPerson,
+        deletePerson,
+        items,
+        hasItems,
+        addItem,
+        deleteItem,
+        results,
+        hasResults,
+        debtsFromPersons,
+        debtsToPersons,
+        hasDebts,
+        calculateResults,
+        createId,
+        resetData,
+    }
 })
