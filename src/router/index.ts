@@ -1,7 +1,7 @@
 import { useBillStore } from '@/store/billStore'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 
-const routes = [
+const routes: RouteRecordRaw[] = [
     {
         name: 'home',
         path: '/',
